@@ -1,189 +1,177 @@
-const CACHE_NAME = 'capibara-snake-v2.1.0';
-const STATIC_CACHE = 'static-v2.1';
-const AUDIO_CACHE = 'audio-v2.1';
-const ASSETS_CACHE = 'assets-v2.1';
+// service-worker.js - VERSIÓN OFFLINE COMPLETA
+const CACHE = "pwabuilder-page"; // ⭐ LÍNEA NUEVA PARA PWABUILDER ⭐
 
-// Archivos críticos - deben estar disponibles inmediatamente
-const STATIC_FILES = [
+const CACHE_NAME = 'capibara-snake-offline-v2.2.0';
+const OFFLINE_URL = './offline.html';
+
+// LISTA COMPLETA de todos los archivos necesarios
+const urlsToCache = [
+  // HTML Principal
   './',
   './index.html',
-  './offline.html',
+  
+  // Imágenes - Sprites
+  './capibara_sprite.png',
+  './bully0.png',
+  './bully1.png',
+  './bully2.png',
+  './bully3.png',
+  './bully4.png',
+  './bully5.png',
+  './brigada_capibara_logo.png',
+  
+  // Sonidos - Música de fondo y efectos
+  './background_music.mp3',
+  './pop.mp3',
+  './boing.mp3',
+  './step.mp3',
+  './triumph.mp3',
+  
+  // Audios de Capi-Sensei (TODOS los niveles)
+  './level_complete_01.mp3',
+  './level_complete_02.mp3',
+  './level_complete_03.mp3',
+  './level_complete_04.mp3',
+  './level_complete_05.mp3',
+  './level_complete_06.mp3',
+  './level_complete_07.mp3',
+  './level_complete_08.mp3',
+  './level_complete_09.mp3',
+  './level_complete_10.mp3',
+  './level_complete_11.mp3',
+  './level_complete_12.mp3',
+  './level_complete_13.mp3',
+  './level_complete_14.mp3',
+  './level_complete_15.mp3',
+  './level_complete_16.mp3',
+  './level_complete_17.mp3',
+  './level_complete_18.mp3',
+  './level_complete_19.mp3',
+  './level_complete_20.mp3',
+  './level_complete_21.mp3',
+  
+  // Manifest e íconos
   './manifest.json'
 ];
 
-// Archivos de audio - cachear progresivamente
-const AUDIO_FILES = [
-  './audio/background_music.mp3',
-  './audio/pop.mp3',
-  './audio/boing.mp3',
-  './audio/step.mp3',
-  './audio/triumph.mp3'
-];
-
-// Generar rutas para los audios de niveles
-for (let i = 1; i <= 21; i++) {
-  const levelNum = i.toString().padStart(2, '0');
-  AUDIO_FILES.push(`./audio/level_complete_${levelNum}.mp3`);
-}
-
-// Assets del juego
-const ASSET_FILES = [
-  './assets/brigada_capibara_logo.png',
-  './assets/capibara_sprite.png',
-  './assets/bully0.png',
-  './assets/bully1.png',
-  './assets/bully2.png',
-  './assets/bully3.png',
-  './assets/bully4.png',
-  './assets/bully5.png',
-  './assets/icon-192.png',
-  './assets/icon-512.png'
-];
-
-self.addEventListener('install', (event) => {
-  console.log('🔄 Service Worker instalándose...');
+// INSTALACIÓN - Cache AGGRESIVO para offline
+self.addEventListener('install', event => {
+  console.log('🛠️ Instalando Service Worker (modo offline)...');
+  
+  // Fuerza la activación inmediata, incluso si hay otros SW
+  self.skipWaiting();
   
   event.waitUntil(
-    caches.open(STATIC_CACHE)
+    caches.open(CACHE_NAME)
       .then(cache => {
-        console.log('📁 Cacheando archivos estáticos críticos...');
-        return cache.addAll(STATIC_FILES);
+        console.log('📦 Abriendo cache, agregando', urlsToCache.length, 'archivos...');
+        
+        // Estrategia: Cachear TODO, incluso si hay errores
+        return Promise.all(
+          urlsToCache.map(url => {
+            return cache.add(url).catch(error => {
+              console.warn(`⚠️ No se pudo cachear ${url}:`, error);
+              // Continuar aunque falle algún archivo
+              return Promise.resolve();
+            });
+          })
+        );
       })
       .then(() => {
-        console.log('✅ Archivos estáticos cacheados');
-        return self.skipWaiting();
+        console.log('✅ Todos los recursos cacheados (offline ready)');
       })
       .catch(error => {
-        console.error('❌ Error en instalación:', error);
+        console.error('❌ Error crítico en instalación:', error);
       })
   );
 });
 
-self.addEventListener('activate', (event) => {
-  console.log('🎯 Service Worker activado');
+// ACTIVACIÓN - Más agresiva
+self.addEventListener('activate', event => {
+  console.log('🎯 Service Worker activado (tomando control)...');
   
   event.waitUntil(
-    caches.keys().then((cacheNames) => {
-      return Promise.all(
-        cacheNames.map((cacheName) => {
-          // Eliminar caches antiguos
-          if (![STATIC_CACHE, AUDIO_CACHE, ASSETS_CACHE].includes(cacheName)) {
-            console.log('🗑️ Eliminando cache antiguo:', cacheName);
-            return caches.delete(cacheName);
-          }
-        })
-      );
-    }).then(() => self.clients.claim())
+    Promise.all([
+      // Tomar control inmediato de todos los clients
+      self.clients.claim(),
+      
+      // Limpiar caches viejos
+      caches.keys().then(cacheNames => {
+        return Promise.all(
+          cacheNames.map(cacheName => {
+            if (cacheName !== CACHE_NAME) {
+              console.log('🗑️ Eliminando cache viejo:', cacheName);
+              return caches.delete(cacheName);
+            }
+          })
+        );
+      })
+    ])
   );
 });
 
-self.addEventListener('fetch', (event) => {
-  const url = new URL(event.request.url);
-  
-  // Solo manejar solicitudes GET
-  if (event.request.method !== 'GET') return;
-  
-  // Estrategias específicas por tipo de recurso
-  if (url.pathname.endsWith('.mp3')) {
-    event.respondWith(audioCacheStrategy(event.request));
-  } else if (url.pathname.includes('/assets/')) {
-    event.respondWith(assetsCacheStrategy(event.request));
-  } else {
-    event.respondWith(networkFirstStrategy(event.request));
+// FETCH - Estrategia OFFLINE-FIRST
+self.addEventListener('fetch', event => {
+  // Excluir chrome extensions y requests no-GET
+  if (event.request.method !== 'GET' || 
+      event.request.url.startsWith('chrome-extension://')) {
+    return;
   }
+  
+  event.respondWith(
+    caches.match(event.request)
+      .then(response => {
+        // 1. PRIMERO intentar del CACHE
+        if (response) {
+          console.log('📂 Sirviendo desde cache:', event.request.url);
+          return response;
+        }
+        
+        // 2. Si no está en cache, intentar NETWORK
+        return fetch(event.request)
+          .then(networkResponse => {
+            // Si la red funciona, cachear para después
+            if (networkResponse && networkResponse.status === 200) {
+              const responseToCache = networkResponse.clone();
+              caches.open(CACHE_NAME)
+                .then(cache => {
+                  cache.put(event.request, responseToCache);
+                });
+            }
+            return networkResponse;
+          })
+          .catch(error => {
+            console.log('🌐 Sin conexión, request falló:', event.request.url);
+            
+            // 3. Estrategias para diferentes tipos de archivos
+            if (event.request.destination === 'document') {
+              // Para páginas HTML, intentar servir index.html
+              return caches.match('./index.html');
+            }
+            
+            // Para imágenes, servir placeholder genérico
+            if (event.request.destination === 'image') {
+              // Podrías servir una imagen placeholder aquí
+              console.log('🖼️ Imagen no disponible offline:', event.request.url);
+            }
+            
+            // Para audio, el juego intentará usar fallbacks
+            if (event.request.destination === 'audio') {
+              console.log('🔊 Audio no disponible offline:', event.request.url);
+            }
+            
+            // En último caso, error genérico
+            return new Response('Offline - Recurso no disponible', {
+              status: 408,
+              statusText: 'Offline'
+            });
+          });
+      })
+  );
 });
 
-// Estrategia para audio: Cache First con actualización en background
-async function audioCacheStrategy(request) {
-  const cache = await caches.open(AUDIO_CACHE);
-  const cachedResponse = await cache.match(request);
-  
-  // Siempre devolver cacheado si existe, pero actualizar en background
-  if (cachedResponse) {
-    updateCacheInBackground(request, cache);
-    return cachedResponse;
-  }
-  
-  // Si no está cacheado, intentar red
-  try {
-    const networkResponse = await fetch(request);
-    if (networkResponse.status === 200) {
-      await cache.put(request, networkResponse.clone());
-    }
-    return networkResponse;
-  } catch (error) {
-    console.log('🔇 Audio no disponible:', request.url);
-    return new Response('', { status: 404 });
-  }
-}
-
-// Estrategia para assets: Cache First
-async function assetsCacheStrategy(request) {
-  const cache = await caches.open(ASSETS_CACHE);
-  const cachedResponse = await cache.match(request);
-  
-  if (cachedResponse) {
-    return cachedResponse;
-  }
-  
-  try {
-    const networkResponse = await fetch(request);
-    if (networkResponse.status === 200) {
-      await cache.put(request, networkResponse.clone());
-    }
-    return networkResponse;
-  } catch (error) {
-    console.log('🖼️ Asset no disponible:', request.url);
-    return new Response('', { status: 404 });
-  }
-}
-
-// Estrategia general: Network First
-async function networkFirstStrategy(request) {
-  try {
-    const networkResponse = await fetch(request);
-    
-    // Cachear respuestas exitosas
-    if (networkResponse.status === 200) {
-      const cache = await caches.open(STATIC_CACHE);
-      cache.put(request, networkResponse.clone()).catch(() => {});
-    }
-    
-    return networkResponse;
-  } catch (error) {
-    // Fallback a cache
-    const cachedResponse = await caches.match(request);
-    if (cachedResponse) {
-      return cachedResponse;
-    }
-    
-    // Fallback a offline.html para páginas
-    if (request.destination === 'document' || 
-        request.headers.get('Accept').includes('text/html')) {
-      return caches.match('./offline.html');
-    }
-    
-    return new Response('Recurso no disponible offline', { 
-      status: 404,
-      headers: { 'Content-Type': 'text/plain' }
-    });
-  }
-}
-
-// Actualizar cache en background sin bloquear la respuesta
-async function updateCacheInBackground(request, cache) {
-  try {
-    const networkResponse = await fetch(request);
-    if (networkResponse.status === 200) {
-      await cache.put(request, networkResponse);
-    }
-  } catch (error) {
-    // Silencioso - no afecta la experiencia del usuario
-  }
-}
-
 // Manejar mensajes desde la app
-self.addEventListener('message', (event) => {
+self.addEventListener('message', event => {
   if (event.data && event.data.type === 'SKIP_WAITING') {
     self.skipWaiting();
   }

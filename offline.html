@@ -7,296 +7,49 @@
     <style>
         body { 
             font-family: 'Segoe UI', system-ui, sans-serif;
-            background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
-            color: white; 
-            height: 100vh; 
-            display: flex;
-            align-items: center; 
-            justify-content: center;
             text-align: center; 
-            padding: 20px;
-            margin: 0;
-        }
-        .container { 
-            background: rgba(0,0,0,0.85); 
-            padding: 40px 30px; 
-            border-radius: 20px; 
-            border: 3px solid #ffeb3b;
-            max-width: 450px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            padding: 50px 20px;
+            background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
+            color: white;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
         }
         h1 { 
-            color: #ffeb3b; 
-            margin-bottom: 20px; 
-            font-size: 2.2rem;
+            font-size: 2.5rem; 
+            margin-bottom: 20px;
+            color: #ffeb3b;
             text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
         }
-        p {
-            margin: 15px 0;
-            line-height: 1.6;
-            font-size: 1.1rem;
+        p { 
+            font-size: 1.2rem; 
+            margin: 10px 0;
+            max-width: 500px;
         }
-        .emoji {
-            font-size: 4rem;
-            margin-bottom: 20px;
-            display: block;
-            animation: float 3s ease-in-out infinite;
-        }
-        @keyframes float {
-            0%, 100% { transform: translateY(0px); }
-            50% { transform: translateY(-10px); }
-        }
-        button { 
+        button {
             background: linear-gradient(45deg, #ff6b6b, #ffeb3b);
-            color: #333; 
             border: none;
-            padding: 15px 30px; 
-            border-radius: 25px; 
+            padding: 15px 30px;
             font-size: 1.1rem;
-            cursor: pointer; 
-            margin-top: 20px; 
+            border-radius: 25px;
+            color: #333;
+            cursor: pointer;
+            margin-top: 20px;
             font-weight: 800;
             transition: all 0.3s ease;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
         }
         button:hover {
             transform: scale(1.05);
-            box-shadow: 0 6px 20px rgba(255,235,59,0.4);
-        }
-        .offline-icon {
-            font-size: 3rem;
-            margin-bottom: 20px;
-            animation: pulse 2s infinite;
-        }
-        @keyframes pulse {
-            0%, 100% { transform: scale(1); }
-            50% { transform: scale(1.1); }
-        }
-        .features {
-            text-align: left;
-            margin: 20px 0;
-            padding: 15px;
-            background: rgba(255,255,255,0.1);
-            border-radius: 10px;
-            border-left: 4px solid #ffeb3b;
-        }
-        .features ul {
-            margin: 10px 0;
-            padding-left: 20px;
-        }
-        .features li {
-            margin: 8px 0;
-            line-height: 1.4;
-        }
-        .tip {
-            background: rgba(255,193,7,0.2);
-            border: 1px solid #ffc107;
-            border-radius: 10px;
-            padding: 12px;
-            margin: 15px 0;
-            font-size: 0.95rem;
-        }
-        .buttons {
-            display: flex;
-            gap: 10px;
-            justify-content: center;
-            flex-wrap: wrap;
-            margin-top: 25px;
-        }
-        .btn-secondary {
-            background: rgba(255,255,255,0.15);
-            color: white;
-            border: 2px solid #ffeb3b;
-        }
-        .btn-secondary:hover {
-            background: rgba(255,255,255,0.25);
-        }
-        .connection-status {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 10px;
-            margin: 15px 0;
-            padding: 10px;
-            background: rgba(255,0,0,0.1);
-            border-radius: 10px;
-            border: 1px solid #ff4444;
-        }
-        .status-dot {
-            width: 12px;
-            height: 12px;
-            border-radius: 50%;
-            background: #ff4444;
-            animation: blink 1.5s infinite;
-        }
-        @keyframes blink {
-            0%, 50% { opacity: 1; }
-            51%, 100% { opacity: 0.3; }
-        }
-        .progress-bar {
-            width: 100%;
-            height: 6px;
-            background: rgba(255,255,255,0.2);
-            border-radius: 3px;
-            margin: 15px 0;
-            overflow: hidden;
-        }
-        .progress {
-            height: 100%;
-            background: #4CAF50;
-            border-radius: 3px;
-            transition: width 0.3s ease;
-            width: 0%;
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="emoji">🐹</div>
-        <h1>Capibara Snake</h1>
-        
-        <div class="connection-status">
-            <div class="status-dot"></div>
-            <p><strong>Sin conexión a internet</strong></p>
-        </div>
-
-        <div class="offline-icon">🔌</div>
-        
-        <p><strong>¡No te preocupes! El juego está diseñado para funcionar offline</strong></p>
-        
-        <div class="tip">
-            💡 <strong>Consejo:</strong> Una vez que recuperes la conexión y cargues el juego, 
-            podrás jugar sin internet en el futuro.
-        </div>
-
-        <div class="features">
-            <p><strong>✨ Lo que puedes hacer offline:</strong></p>
-            <ul>
-                <li>✅ Jugar todos los 21 niveles</li>
-                <li>✅ Escuchar música y efectos de sonido</li>
-                <li>✅ Guardar tus puntuaciones máximas</li>
-                <li>✅ Ver los mensajes de Capi-Sensei</li>
-                <li>✅ Usar todos los controles y funciones</li>
-            </ul>
-        </div>
-
-        <div class="progress-bar">
-            <div class="progress" id="loadProgress"></div>
-        </div>
-
-        <div class="buttons">
-            <button onclick="window.location.reload()">🔄 Reintentar Conexión</button>
-            <button class="btn-secondary" onclick="tryLoadGame()">🎮 Intentar Cargar Juego</button>
-        </div>
-
-        <p style="font-size: 0.9rem; margin-top: 20px; opacity: 0.8;">
-            Si el juego ya estaba cargado, intenta la opción "Cargar Juego"
-        </p>
-    </div>
-
-    <script>
-        let retryCount = 0;
-        const maxRetries = 3;
-
-        function tryLoadGame() {
-            const progressBar = document.getElementById('loadProgress');
-            const buttons = document.querySelector('.buttons');
-            
-            // Mostrar progreso
-            progressBar.style.width = '30%';
-            
-            // Deshabilitar botones temporalmente
-            buttons.style.opacity = '0.6';
-            buttons.style.pointerEvents = 'none';
-            
-            // Intentar cargar el juego principal
-            const startTime = Date.now();
-            const timeout = 5000; // 5 segundos timeout
-            
-            fetch('./index.html', { method: 'HEAD', cache: 'force-cache' })
-                .then(response => {
-                    if (response.ok) {
-                        progressBar.style.width = '100%';
-                        setTimeout(() => {
-                            window.location.href = './index.html';
-                        }, 500);
-                    } else {
-                        throw new Error('No se pudo cargar el juego');
-                    }
-                })
-                .catch(error => {
-                    retryCount++;
-                    progressBar.style.width = '0%';
-                    buttons.style.opacity = '1';
-                    buttons.style.pointerEvents = 'auto';
-                    
-                    if (retryCount < maxRetries) {
-                        showMessage(`Intento ${retryCount}/${maxRetries} falló. Reintentando...`);
-                        setTimeout(tryLoadGame, 1000);
-                    } else {
-                        showMessage('No se pudo cargar el juego. Verifica tu conexión.');
-                    }
-                });
-        }
-
-        function showMessage(text) {
-            // Crear mensaje temporal
-            const message = document.createElement('div');
-            message.textContent = text;
-            message.style.cssText = `
-                position: fixed;
-                top: 20px;
-                left: 50%;
-                transform: translateX(-50%);
-                background: #ff9800;
-                color: black;
-                padding: 10px 20px;
-                border-radius: 20px;
-                z-index: 1000;
-                font-weight: bold;
-                border: 2px solid #ffeb3b;
-            `;
-            document.body.appendChild(message);
-            
-            setTimeout(() => {
-                if (message.parentNode) {
-                    message.parentNode.removeChild(message);
-                }
-            }, 3000);
-        }
-
-        // Verificar si hay conexión periódicamente
-        function checkConnection() {
-            if (navigator.onLine) {
-                showMessage('¡Conexión recuperada! Redirigiendo...');
-                setTimeout(() => {
-                    window.location.href = './index.html';
-                }, 1000);
-            }
-        }
-
-        // Verificar conexión cada 3 segundos
-        setInterval(checkConnection, 3000);
-
-        // También verificar cuando se recupera la conexión
-        window.addEventListener('online', checkConnection);
-
-        // Mostrar información de debug en consola
-        console.log('🔌 Página offline cargada - Juego: Capibara Snake');
-        console.log('📡 Estado de conexión:', navigator.onLine ? 'En línea' : 'Sin conexión');
-        console.log('🕒 Hora:', new Date().toLocaleString());
-        
-        // Verificar si el Service Worker está registrado
-        if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.getRegistration()
-                .then(registration => {
-                    if (registration) {
-                        console.log('✅ Service Worker registrado');
-                    } else {
-                        console.log('❌ Service Worker no registrado');
-                    }
-                });
-        }
-    </script>
+    <h1>🐹 Capibara Snake</h1>
+    <p>🔌 ¡Estás offline!</p>
+    <p>Pero no te preocupes - el juego está completamente disponible sin conexión.</p>
+    <p><small>La próxima vez que tengas internet, podrás jugar sin problemas.</small></p>
+    <button onclick="location.reload()">🔄 Reintentar Conexión</button>
 </body>
 </html>
