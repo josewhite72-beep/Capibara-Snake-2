@@ -1,0 +1,1319 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#8b4513" />
+  <meta name="description" content="Capibara Snake: Juego educativo contra el bullying. 21 niveles, recolecta canicas, evita bullies." />
+  
+  <!-- PWA Meta Tags -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Capibara Snake">
+  
+  <!-- Theme Color para diferentes navegadores -->
+  <meta name="theme-color" content="#8b4513">
+  <meta name="msapplication-TileColor" content="#6a11cb">
+  
+  <!-- Iconos para diferentes plataformas -->
+  <link rel="icon" type="image/png" href="icon-192.png">
+  <link rel="apple-touch-icon" href="icon-192.png">
+  
+  <title>Capibara Snake</title>
+
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box}
+    body{
+      font-family:'Segoe UI',system-ui,-apple-system,sans-serif;
+      background:linear-gradient(135deg,#6a11cb 0%,#2575fc 100%);
+      color:#fff;height:100vh;overflow:hidden;
+      display:flex;align-items:center;justify-content:center;padding:10px
+    }
+    #gameContainer{
+      position:relative;width:100%;height:100%;
+      max-width:500px;max-height:820px;background:rgba(0,0,0,.85);
+      border-radius:16px;padding:14px;display:flex;flex-direction:column;gap:10px
+    }
+    h1{font-size:1.9rem;color:#ffeb3b;text-shadow:2px 2px 4px rgba(0,0,0,.5);text-align:center}
+
+    /* HUD superior */
+    #gameInfo{
+      display:grid;grid-template-columns:repeat(5,1fr);gap:6px;
+      width:100%;background:rgba(255,255,255,.08);padding:8px;border-radius:10px
+    }
+    .info-item{text-align:center}
+    .info-label{font-size:.78rem;color:#b3e5fc}
+    .info-value{font-weight:700;color:#ffeb3b}
+
+    /* Banner de proximidad de bully */
+    #bullyBanner{
+      display:none;position:absolute;top:8px;left:50%;transform:translateX(-50%);
+      background:#C62828;color:#fff;border:3px solid #ffeb3b;border-radius:10px;
+      padding:6px 12px;font-weight:800;z-index:5;text-align:center;
+      transition:all 0.3s ease;
+    }
+
+    canvas{
+      border:3px solid #ffeb3b;border-radius:12px;
+      background:#1a5f1a;
+      max-width:100%;max-height:62%;
+      image-rendering:pixelated
+    }
+
+    /* Barra de herramientas (música/velocidad) */
+    #toolBar{
+      display:flex;gap:8px;align-items:center;justify-content:center;
+      background:rgba(255,255,255,.08);padding:8px;border-radius:10px
+    }
+    .chip{
+      display:inline-flex;align-items:center;gap:6px;
+      background:rgba(255,255,255,.12);border:2px solid #ffeb3b;border-radius:999px;
+      padding:6px 10px;color:#ffe16a;font-weight:700
+    }
+    .btn-mini{
+      width:34px;height:34px;border-radius:50%;border:2px solid #ffeb3b;
+      background:rgba(255,235,59,.25);color:#222;font-size:1rem;font-weight:800;cursor:pointer;
+      transition:all 0.2s ease;
+    }
+    .btn-mini:active{transform:scale(.92);background:rgba(255,235,59,.55)}
+
+    /* Controles direccionales: visibles también en vertical */
+    #controls{
+      display:flex;gap:14px;align-items:center;justify-content:center;
+      touch-action:none;user-select:none
+    }
+    .control-btn{
+      width:60px;height:60px;border-radius:50%;
+      background:rgba(255,235,59,.32);border:3px solid #ffeb3b;
+      font-size:1.5rem;cursor:pointer;
+      transition:all 0.2s ease;
+    }
+    .control-btn:active{background:rgba(255,235,59,.6);transform:scale(.92)}
+
+    /* Pantallas */
+    #startScreen,#gameOverScreen,#capiSenseiScreen{
+      position:fixed;inset:0;background:rgba(0,0,0,.96);
+      display:flex;flex-direction:column;justify-content:center;align-items:center;z-index:20
+    }
+    .screen-content{
+      background:rgba(255,255,255,.08);padding:22px;border-radius:14px;text-align:center;max-width:520px
+    }
+    .btn{
+      background:linear-gradient(45deg,#ff6b6b,#ffeb3b);
+      border:none;padding:14px 26px;font-size:1.1rem;border-radius:25px;color:#333;cursor:pointer;margin:10px;font-weight:800;
+      transition:all 0.3s ease;
+    }
+    .btn:hover{transform:scale(1.05)}
+    .btn-continue{
+      background:linear-gradient(45deg,#2196F3,#21CBF3);
+    }
+    .logo{
+      width:min(360px,80vw);border-radius:12px;border:3px solid #ffeb3b;margin-bottom:12px
+    }
+
+    #timer{
+      background:rgba(46,125,50,.92);padding:6px 12px;border-radius:20px;
+      font-weight:800;border:2px solid #4CAF50;display:inline-block
+    }
+
+    /* Efectos visuales */
+    .shake {
+      animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both;
+    }
+    @keyframes shake {
+      10%, 90% { transform: translate3d(-1px, 0, 0); }
+      20%, 80% { transform: translate3d(2px, 0, 0); }
+      30%, 50%, 70% { transform: translate3d(-4px, 0, 0); }
+      40%, 60% { transform: translate3d(4px, 0, 0); }
+    }
+
+    .pulse {
+      animation: pulse 0.5s ease-in-out;
+    }
+    @keyframes pulse {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.1); }
+      100% { transform: scale(1); }
+    }
+
+    /* Animaciones para Capi-Sensei */
+    @keyframes float {
+      0%, 100% { transform: translateY(0px); }
+      50% { transform: translateY(-10px); }
+    }
+    
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.7; }
+    }
+    
+    .capi-avatar {
+      animation: float 3s ease-in-out infinite, blink 2s ease-in-out infinite;
+    }
+
+    .message-bubble {
+      animation: pulse 2s ease-in-out infinite;
+    }
+
+    /* Banner offline */
+    .offline-banner {
+      position: fixed; top: 10px; right: 10px;
+      background: #ff9800; color: #000; padding: 8px 12px;
+      border-radius: 20px; z-index: 1000; font-size: 0.8rem;
+      font-weight: bold; border: 2px solid #ffeb3b;
+      animation: pulse 2s infinite;
+    }
+
+    /* Banner de actualización PWA */
+    .update-banner {
+      position: fixed; top: 10px; left: 50%; transform: translateX(-50%);
+      background: #4CAF50; color: white; padding: 10px 20px;
+      border-radius: 25px; z-index: 1000; font-weight: bold;
+      border: 2px solid #ffeb3b; box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+      display: none;
+    }
+
+    /* Mensajes del sistema */
+    .system-message {
+      position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
+      background: #4CAF50; color: white; padding: 10px 20px;
+      border-radius: 25px; z-index: 1000; font-weight: bold;
+      border: 2px solid #ffeb3b; box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+    }
+
+    @media (orientation:landscape){
+      canvas{max-height:78vh}
+    }
+    @media (max-width:480px){
+      h1{font-size:1.55rem}
+      .control-btn{width:52px;height:52px;font-size:1.2rem}
+      .btn-mini{width:30px;height:30px}
+      #gameInfo{grid-template-columns:repeat(3,1fr)}
+      #gameInfo .info-item:nth-child(4),
+      #gameInfo .info-item:nth-child(5) {
+        grid-column: span 1;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- Banner de actualización PWA -->
+  <div id="updateBanner" class="update-banner">
+    🎮 ¡Nueva versión disponible! 
+    <button onclick="location.reload()" style="margin-left:10px; background:white; color:#333; border:none; padding:5px 10px; border-radius:15px; cursor:pointer">
+      Actualizar
+    </button>
+  </div>
+
+  <div id="gameContainer">
+    <h1>🐹 Capibara Snake</h1>
+
+    <!-- HUD Mejorado -->
+    <div id="gameInfo">
+      <div class="info-item"><div class="info-label">Nivel</div><div id="levelNum" class="info-value">1</div></div>
+      <div class="info-item"><div class="info-label">Canicas</div><div id="marbles" class="info-value">0/10</div></div>
+      <div class="info-item"><div class="info-label">Puntos</div><div id="score" class="info-value">0</div></div>
+      <div class="info-item"><div class="info-label">Vidas</div><div id="lives" class="info-value">❤️❤️❤️</div></div>
+      <div class="info-item"><div class="info-label">⏰</div><div id="timer" class="info-value">3:00</div></div>
+    </div>
+
+    <!-- Banner de bully cercano -->
+    <div id="bullyBanner">BULLY</div>
+
+    <canvas id="gameCanvas"></canvas>
+
+    <!-- Herramientas -->
+    <div id="toolBar">
+      <div class="chip">
+        🎵 Música
+        <button id="volDown" class="btn-mini">−</button>
+        <button id="volMute" class="btn-mini">0</button>
+        <button id="volUp" class="btn-mini">+</button>
+      </div>
+      <div class="chip">
+        ⚡ Velocidad
+        <button id="spdDown" class="btn-mini">−</button>
+        <span id="spdLabel">1.0×</span>
+        <button id="spdUp" class="btn-mini">+</button>
+      </div>
+    </div>
+
+    <!-- Controles -->
+    <div id="controls">
+      <button class="control-btn" id="left">⬅️</button>
+      <button class="control-btn" id="down">⬇️</button>
+      <button class="control-btn" id="up">⬆️</button>
+      <button class="control-btn" id="right">➡️</button>
+    </div>
+  </div>
+
+  <!-- Pantalla de inicio -->
+  <div id="startScreen">
+    <div class="screen-content">
+      <img src="brigada_capibara_logo.png" alt="Brigada Capibara" class="logo" onerror="this.style.display='none'">
+      <h2>¡Bienvenido a Capibara Snake!</h2>
+      <p>Recolecta canicas (10 por nivel). Con <b>6</b> o más, avanzas. Evita a los bullies.</p>
+      <p><small>Tienes 3 vidas - ¡Cuídalas!</small></p>
+      
+      <button class="btn" onclick="startGame()">🎮 Nuevo Juego</button>
+      <button class="btn btn-continue" onclick="continueSavedGame()" id="continueButton" style="display:none">➡️ Continuar Juego</button>
+      
+      <div id="pwaStatus" style="margin-top:15px; font-size:0.8rem; color:#b3e5fc;"></div>
+      
+      <!-- Botón de limpiar datos (opcional, para desarrollo) -->
+      <button onclick="clearAllData()" style="background:none; border:none; color:#ff6b6b; font-size:0.7rem; margin-top:10px; cursor:pointer; opacity:0.7;">
+        🗑️ Limpiar datos guardados
+      </button>
+    </div>
+  </div>
+
+  <!-- Pantalla de Capi-Sensei -->
+  <div id="capiSenseiScreen" style="display:none;">
+    <div class="screen-content" style="max-width: 600px;">
+      <!-- Avatar animado de Capi-Sensei -->
+      <div id="capiAvatar" class="capi-avatar" style="font-size: 5rem; text-align: center; margin: 20px 0;">
+        🐹✨
+      </div>
+      
+      <!-- Burbuja de diálogo -->
+      <div class="message-bubble" style="background: rgba(255,235,59,0.9); color: #333; padding: 20px; border-radius: 20px; position: relative; margin: 20px 0; border: 3px solid #ff9800;">
+        <div style="position: absolute; top: -20px; left: 50px; width: 0; height: 0; border-left: 20px solid transparent; border-right: 20px solid transparent; border-bottom: 20px solid rgba(255,235,59,0.9);"></div>
+        <p id="capiMessage" style="font-size: 1.2rem; line-height: 1.4; margin: 0; font-weight: 600;"></p>
+      </div>
+      
+      <!-- Controles -->
+      <div style="display: flex; gap: 15px; justify-content: center; align-items: center; margin-top: 20px;">
+        <button id="playAudio" class="btn-mini" style="width: 50px; height: 50px; font-size: 1.2rem;">🔊</button>
+        <button class="btn" onclick="continueToNextLevel()">
+          ➡️ Continuar al Nivel <span id="nextLevelNumber"></span>
+        </button>
+      </div>
+
+      <!-- Indicador de audio -->
+      <div id="audioStatus" style="margin-top: 10px; font-size: 0.8rem; color: #b3e5fc;">
+        👆 Toca el altavoz para escuchar el mensaje
+      </div>
+    </div>
+  </div>
+
+  <!-- Pantalla final -->
+  <div id="gameOverScreen" style="display:none;">
+    <div class="screen-content">
+      <h2 id="gameOverTitle">¡Game Over!</h2>
+      <p id="finalStats"></p>
+      <div id="highScores" style="margin: 15px 0; display: none;">
+        <h3>🏆 Mejores Puntuaciones</h3>
+        <div id="highScoresList"></div>
+      </div>
+      <button class="btn" onclick="restartGame()">🔄 Jugar de Nuevo</button>
+      <button class="btn btn-continue" onclick="showInstallPrompt()" id="installButton" style="display:none">📱 Instalar App</button>
+    </div>
+  </div>
+
+  <!-- Audio del juego -->
+  <audio id="bgMusic" loop>
+    <source src="background_music.mp3" type="audio/mpeg">
+  </audio>
+  <audio id="pop">
+    <source src="pop.mp3" type="audio/mpeg">
+  </audio>
+  <audio id="boing">
+    <source src="boing.mp3" type="audio/mpeg">
+  </audio>
+  <audio id="step">
+    <source src="step.mp3" type="audio/mpeg">
+  </audio>
+  <audio id="triumph">
+    <source src="triumph.mp3" type="audio/mpeg">
+  </audio>
+
+  <script>
+    // ====== CONFIGURACIÓN BÁSICA ======
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d', {alpha:true});
+    const GRID = 20;
+    const TOTAL_MARBLES = 10;
+    const WIN_MIN = 6;
+    const NEAR_DIST = 2;
+
+    let capibara = [{x:10*GRID, y:10*GRID}], direction = {x:1, y:0};
+    let canicas = [], bullies = [], obstacles = [];
+    let timeLeft = 180, bullymeter = 0, score = 0, currentLevel = 0, gameActive = false;
+    let gameSpeed = 150;
+    let speedFactor = 1.0;
+    let timerInterval;
+    let lives = 3;
+    let shakeIntensity = 0;
+    let lastTime = 0;
+    let resizeTimeout;
+    let autoSaveInterval;
+
+    // ====== SISTEMA CAPI-SENSEI ======
+    const CAPI_SENSEI_MESSAGES = {
+      1: "¡Primer nivel completado! Eso es empezar con fuerza. Recuerda: tu apoyo marca la diferencia contra el bullying.",
+      2: "¡Nivel dos superado! Vas por buen camino. Las palabras pueden doler más que los golpes, elígelas con cuidado.",
+      3: "¡Tercer nivel conquistado! Tu progreso es notable. La empatía es tu superpoder - ponte en el lugar de los demás.",
+      4: "¡Cuarto nivel completado! Cada vez mejor. Celebra las diferencias, hacen nuestro mundo más interesante y valioso.",
+      5: "¡Nivel cinco superado! Demuestras gran determinación. Si sufres bullying, recuerda: nunca es tu culpa y mereces ayuda.",
+      6: "¡Sexto desafío logrado! Excelente trabajo. Un simple '¿estás bien?' puede ser el apoyo que alguien necesita.",
+      7: "¡Séptimo nivel dominado! Tu constancia impresiona. En internet también debemos ser respetuosos - piensa antes de publicar.",
+      8: "¡Octavo nivel completado! Eres imparable. Tus palabras tienen poder, úsalas para construir y nunca para destruir.",
+      9: "¡Nivel nueve superado! Casi llegas a la meta. Todos cometemos errores, lo importante es aprender y mejorar.",
+      10: "¡Doble dígitos alcanzados! Gran milestone. Ser auténtico es tu fortaleza - no cambies por nadie.",
+      11: "¡Nivel once conquistado! Superas todos los retos. La verdadera valentía es actuar a pesar del miedo.",
+      12: "¡Doceavo nivel completado! Nada te detiene. Todos tenemos días malos - un poco de comprensión cambia todo.",
+      13: "¡Nivel trece superado! Eres muy perseverante. No difundas rumores - la información falsa hace mucho daño.",
+      14: "¡Catorceavo nivel dominado! Tu esfuerzo da frutos. Si te excluyen, busca quienes valoren tu verdadera esencia.",
+      15: "¡Quince niveles completados! Casi en la cima. Tu valor no depende de opiniones ajenas - eres único e importante.",
+      16: "¡Nivel dieciséis superado! Rozas la excelencia. Perdonar te libera, pero establecer límites es sabiduría pura.",
+      17: "¡Diecisiete niveles conquistados! Eres excepcional. La confianza se gana con acciones, no solo con palabras.",
+      18: "¡Nivel dieciocho completado! Brillas con luz propia. Ofrece ayuda a quien parezca tener un día difícil.",
+      19: "¡Penúltimo nivel superado! Estás a un paso. Ser diferente es normal - la uniformidad es aburrida.",
+      20: "¡VENTI niveles dominados! Llegaste al final boss. Tu actitud positiva puede inspirar grandes cambios en otros.",
+      21: "¡VICTORIA TOTAL! Has completado todos los niveles con honor y valentía. Lleva estos aprendizajes contigo: eres fuerte, capaz y tu voz importa. ¡Felicidades, verdadero campeón contra el bullying!"
+    };
+
+    function getCapiAudioFile(level) {
+      const fileName = `level_complete_${level.toString().padStart(2, '0')}.mp3`;
+      return `${fileName}`;
+    }
+
+    const BULLY_TYPES = {
+      0: { name: "Bully-blast", description: "Usa palabras fuertes e insultos. Las palabras pueden doler más que los golpes." },
+      1: { name: "Bully-word", description: "Especialista en burlas y apodos. Todos merecemos respeto por quienes somos." },
+      2: { name: "Bully-byte", description: "El ciberbullying llega por pantallas. Sé amable también en internet." },
+      3: { name: "Bullyshade", description: "Usa la exclusión social. Incluir a quienes están solos crea ambientes positivos." },
+      4: { name: "Bully-fear", description: "Amenaza e intimida. Si te sientes amenazado, busca ayuda inmediatamente." },
+      5: { name: "Bullymaster", description: "Combina diferentes acosos. En situaciones complejas, pide ayuda profesional." }
+    };
+
+    // ====== NIVELES ======
+    const LEVELS = [
+      {name:"Aula Tranquila", obstacles:[[5,5],[15,15]], bullies:2, speed:150},
+      {name:"Biblioteca", obstacles:[[3,3],[17,17],[10,10]], bullies:3, speed:140},
+      {name:"Patio", obstacles:[[2,8],[18,12],[9,5]], bullies:3, speed:130},
+      {name:"Pasillos", obstacles:[[4,4],[4,6],[4,8],[16,4],[16,6],[16,8]], bullies:4, speed:125},
+      {name:"Cafetería", obstacles:[[10,10]], bullies:4, speed:120},
+      {name:"Gimnasio", obstacles:[[2,2],[4,18],[18,4],[12,12],[6,6]], bullies:4, speed:115},
+      {name:"Laboratorio", obstacles:[[1,1],[19,19],[5,15],[15,5],[8,8],[12,12]], bullies:5, speed:110},
+      {name:"Auditorio", obstacles:[[7,7],[13,13]], bullies:5, speed:105},
+      {name:"Jardín", obstacles:[[3,17],[17,3],[9,9],[11,11],[1,19],[19,1]], bullies:5, speed:100},
+      {name:"Directorio", obstacles:[[10,10]], bullies:6, speed:95},
+      {name:"Sala Juegos", obstacles:[[2,18],[18,2],[5,5],[15,15],[8,12],[12,8]], bullies:6, speed:90},
+      {name:"Tech Lab", obstacles:Array(10).fill().map(()=>[Math.floor(Math.random()*20),Math.floor(Math.random()*20)]), bullies:6, speed:85},
+      {name:"Piscina", obstacles:[[4,16],[16,4],[10,2],[2,10],[18,18]], bullies:7, speed:80},
+      {name:"Teatro", obstacles:Array(11).fill().map(()=>[Math.floor(Math.random()*20),Math.floor(Math.random()*20)]), bullies:7, speed:75},
+      {name:"Mid-Boss", obstacles:[[10,10],[8,8],[12,12]], bullies:7, speed:70},
+      {name:"Underground", obstacles:Array(12).fill().map(()=>[Math.floor(Math.random()*20),Math.floor(Math.random()*20)]), bullies:7, speed:65},
+      {name:"Cybercafé", obstacles:Array(13).fill().map(()=>[Math.floor(Math.random()*20),Math.floor(Math.random()*20)]), bullies:8, speed:60},
+      {name:"Torre", obstacles:Array(14).fill().map(()=>[Math.floor(Math.random()*20),Math.floor(Math.random()*20)]), bullies:8, speed:55},
+      {name:"Arena", obstacles:Array(15).fill().map(()=>[Math.floor(Math.random()*20),Math.floor(Math.random()*20)]), bullies:8, speed:50},
+      {name:"Final Boss", obstacles:[[10,10],[9,9],[11,11],[10,9],[9,10]], bullies:8, speed:45},
+      {name:"VICTORIA", obstacles:[], bullies:0, speed:0}
+    ];
+
+    // ====== Recursos ======
+    const capibaraImg = new Image(); 
+    capibaraImg.src = 'capibara_sprite.png';
+    capibaraImg.onerror = function() {
+      console.warn("No se pudo cargar sprite de capibara, usando fallback");
+      this._error = true;
+    };
+    
+    const bullyImgs = Array(6).fill().map((_,i)=>{ 
+      const img = new Image(); 
+      img.src = `bully${i}.png`;
+      img.onerror = function() {
+        console.warn(`No se pudo cargar bully${i}.png, usando fallback`);
+        this._error = true;
+      };
+      return img; 
+    });
+
+    const BULLY_INFO = [
+      {i:0, name:'Bully-blast'}, {i:1, name:'Bully-word'}, {i:2, name:'Bully-byte'},
+      {i:3, name:'Bullyshade'}, {i:4, name:'Bully-fear'}, {i:5, name:'Bullymaster'}
+    ];
+
+    const bgMusic = document.getElementById('bgMusic');
+    const sounds = {
+      pop: document.getElementById('pop'),
+      boing: document.getElementById('boing'),
+      step: document.getElementById('step'),
+      triumph: document.getElementById('triumph')
+    };
+
+    // ====== SISTEMA DE MEMORIA Y PROGRESO ======
+
+    // Guardar estado del juego
+    function saveGameState() {
+      if (!gameActive) return;
+      
+      const gameState = {
+        currentLevel: currentLevel,
+        score: score,
+        lives: lives,
+        bullymeter: bullymeter,
+        timeLeft: timeLeft,
+        timestamp: Date.now(),
+        version: '2.0.0'
+      };
+      
+      try {
+        localStorage.setItem('capibaraGameState', JSON.stringify(gameState));
+        console.log('💾 Estado del juego guardado');
+      } catch (error) {
+        console.warn('⚠️ No se pudo guardar el estado del juego:', error);
+      }
+    }
+
+    // Cargar juego guardado
+    function loadGameState() {
+      try {
+        const saved = localStorage.getItem('capibaraGameState');
+        if (saved) {
+          const gameState = JSON.parse(saved);
+          
+          // Verificar versión y antigüedad (menos de 24 horas)
+          if (gameState.version === '2.0.0' && Date.now() - gameState.timestamp < 86400000) {
+            currentLevel = gameState.currentLevel || 0;
+            score = gameState.score || 0;
+            lives = gameState.lives || 3;
+            bullymeter = gameState.bullymeter || 0;
+            timeLeft = gameState.timeLeft || 180;
+            
+            console.log('📂 Juego guardado cargado:', gameState);
+            return true;
+          } else {
+            // Estado muy antiguo o versión diferente, limpiar
+            localStorage.removeItem('capibaraGameState');
+          }
+        }
+      } catch (error) {
+        console.warn('⚠️ Error cargando juego guardado:', error);
+      }
+      return false;
+    }
+
+    // Continuar juego guardado
+    function continueSavedGame() {
+      if (loadGameState()) {
+        document.getElementById('startScreen').style.display = 'none';
+        gameActive = true;
+        
+        resizeCanvas();
+        const cx = Math.floor((canvas.width/2)/GRID)*GRID;
+        const cy = Math.floor((canvas.height/2)/GRID)*GRID;
+        capibara = [{x:cx, y:cy}];
+        direction = {x:1, y:0};
+
+        loadLevel();
+        updateTimer();
+        updateHUD();
+
+        bgMusic.volume = 0.3;
+        bgMusic.play().catch((e)=>{
+          console.warn("Error reproduciendo música:", e);
+        });
+        startTimer(); 
+        requestAnimationFrame(gameLoop);
+        
+        // Mostrar notificación
+        showMessage('¡Juego guardado cargado!', 'success');
+      } else {
+        showMessage('No hay juego guardado', 'info');
+      }
+    }
+
+    // Mostrar mensaje temporal
+    function showMessage(text, type = 'info') {
+      const message = document.createElement('div');
+      message.textContent = text;
+      message.style.cssText = `
+        position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
+        background: ${type === 'success' ? '#4CAF50' : type === 'error' ? '#f44336' : '#2196F3'};
+        color: white; padding: 10px 20px; border-radius: 25px; z-index: 1000;
+        font-weight: bold; border: 2px solid #ffeb3b; box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+      `;
+      document.body.appendChild(message);
+      
+      setTimeout(() => {
+        if (message.parentNode) message.parentNode.removeChild(message);
+      }, 3000);
+    }
+
+    // Guardar puntuación máxima
+    function saveHighScore() {
+      const highScores = JSON.parse(localStorage.getItem('capibaraHighScores') || '[]');
+      highScores.push({
+        score: score,
+        level: currentLevel + 1,
+        date: new Date().toLocaleDateString('es-ES'),
+        marbles: bullymeter,
+        timestamp: Date.now()
+      });
+      
+      // Ordenar por puntuación y mantener solo top 10
+      highScores.sort((a, b) => b.score - a.score);
+      if(highScores.length > 10) highScores.length = 10;
+      
+      localStorage.setItem('capibaraHighScores', JSON.stringify(highScores));
+      return highScores;
+    }
+
+    // Mostrar puntuaciones máximas
+    function showHighScores() {
+      const highScores = JSON.parse(localStorage.getItem('capibaraHighScores') || '[]');
+      const highScoresList = document.getElementById('highScoresList');
+      const highScoresContainer = document.getElementById('highScores');
+      
+      if(highScores.length > 0) {
+        highScoresList.innerHTML = highScores.map((hs, index) => `
+          <div style="display: flex; justify-content: space-between; align-items: center; margin: 8px 0; padding: 10px; background: rgba(255,255,255,0.1); border-radius: 10px; border-left: 4px solid #ffeb3b;">
+            <div style="font-weight: bold; color: #ffeb3b;">#${index + 1}</div>
+            <div style="text-align: center;">
+              <div style="font-size: 1.1rem; font-weight: bold;">${hs.score} pts</div>
+              <div style="font-size: 0.8rem; opacity: 0.8;">Nvl ${hs.level} • ${hs.marbles} canicas</div>
+            </div>
+            <div style="font-size: 0.8rem; opacity: 0.8; text-align: right;">
+              ${hs.date}
+            </div>
+          </div>
+        `).join('');
+        highScoresContainer.style.display = 'block';
+      } else {
+        highScoresContainer.style.display = 'none';
+      }
+    }
+
+    // Limpiar todos los datos guardados
+    function clearAllData() {
+      if (confirm('¿Estás seguro de que quieres borrar todos los datos guardados? (puntuaciones y progreso)')) {
+        localStorage.removeItem('capibaraHighScores');
+        localStorage.removeItem('capibaraGameState');
+        showMessage('Datos borrados correctamente', 'info');
+        document.getElementById('continueButton').style.display = 'none';
+        setTimeout(() => location.reload(), 1000);
+      }
+    }
+
+    // Guardar automáticamente cada 30 segundos durante el juego
+    function startAutoSave() {
+      clearInterval(autoSaveInterval);
+      autoSaveInterval = setInterval(() => {
+        if (gameActive) {
+          saveGameState();
+        }
+      }, 30000); // 30 segundos
+    }
+
+    // ====== SISTEMA CAPI-SENSEI MEJORADO ======
+    let currentCapiAudio = null;
+
+    function showCapiSensei() {
+      const messageKey = Math.min(currentLevel, 21);
+      const message = CAPI_SENSEI_MESSAGES[messageKey];
+      const audioFile = getCapiAudioFile(messageKey);
+      
+      console.log("🔊 Capi-Sensei - Nivel:", messageKey, "Archivo:", audioFile);
+      
+      document.getElementById('capiMessage').textContent = message;
+      document.getElementById('nextLevelNumber').textContent = currentLevel + 1;
+      
+      const playButton = document.getElementById('playAudio');
+      playButton.onclick = function() {
+        console.log("👆 Botón de audio presionado");
+        playCapiAudio(audioFile, messageKey);
+      };
+      
+      document.getElementById('audioStatus').textContent = "👆 Toca el altavoz para escuchar";
+      document.getElementById('capiSenseiScreen').style.display = 'flex';
+      
+      checkAudioFile(audioFile);
+    }
+
+    function checkAudioFile(audioFile) {
+      fetch(audioFile, { method: 'HEAD' })
+        .then(response => {
+          if (response.ok) {
+            console.log("✅ Archivo de audio existe:", audioFile);
+            document.getElementById('audioStatus').textContent = "👆 Toca el altavoz para escuchar";
+          } else {
+            console.error("❌ Archivo de audio no encontrado:", audioFile);
+            document.getElementById('audioStatus').textContent = "❌ Archivo de audio no disponible";
+          }
+        })
+        .catch(error => {
+          console.error("❌ Error verificando archivo:", audioFile, error);
+          document.getElementById('audioStatus').textContent = "❌ Error cargando audio";
+        });
+    }
+
+    function playCapiAudio(audioFile, level) {
+      if (currentCapiAudio) {
+        currentCapiAudio.pause();
+        currentCapiAudio.currentTime = 0;
+        currentCapiAudio = null;
+      }
+      
+      console.log("🎵 Intentando reproducir:", audioFile);
+      
+      currentCapiAudio = new Audio();
+      
+      currentCapiAudio.addEventListener('loadstart', () => {
+        console.log("🔄 Cargando audio...");
+        document.getElementById('audioStatus').textContent = "🔄 Cargando audio...";
+      });
+      
+      currentCapiAudio.addEventListener('canplay', () => {
+        console.log("✅ Audio listo para reproducir");
+        document.getElementById('audioStatus').textContent = "✅ Audio listo";
+      });
+      
+      currentCapiAudio.addEventListener('error', (e) => {
+        console.error("❌ Error de audio:", e);
+        console.error("Detalles:", currentCapiAudio.error);
+        document.getElementById('audioStatus').textContent = "❌ Error reproduciendo audio";
+        tryAlternativePaths(level);
+      });
+      
+      currentCapiAudio.addEventListener('ended', () => {
+        console.log("✅ Audio completado");
+        document.getElementById('audioStatus').textContent = "✅ Mensaje completado";
+      });
+      
+      currentCapiAudio.src = audioFile;
+      currentCapiAudio.load();
+      
+      const playPromise = currentCapiAudio.play();
+      
+      if (playPromise !== undefined) {
+        playPromise.then(() => {
+          console.log("🎵 Reproduciendo audio correctamente");
+          document.getElementById('audioStatus').textContent = "🔊 Reproduciendo...";
+        }).catch(error => {
+          console.error("❌ Error en play():", error);
+          document.getElementById('audioStatus').textContent = "👆 Toca para reproducir";
+        });
+      }
+    }
+
+    function tryAlternativePaths(level) {
+      const fileName = `level_complete_${level.toString().padStart(2, '0')}.mp3`;
+      const alternativePaths = [
+        `${fileName}`,
+        `./${fileName}`, 
+        `audio/${fileName}`,
+        `./audio/${fileName}`,
+        `../${fileName}`
+      ];
+      
+      console.log("🔄 Intentando rutas alternativas...");
+      
+      for (let i = 0; i < alternativePaths.length; i++) {
+        const path = alternativePaths[i];
+        console.log(`🔧 Probando ruta: ${path}`);
+        
+        fetch(path, { method: 'HEAD' })
+          .then(response => {
+            if (response.ok) {
+              console.log(`✅ Ruta alternativa funciona: ${path}`);
+              playCapiAudio(path, level);
+              return;
+            }
+          })
+          .catch(() => {
+            console.log(`❌ Ruta alternativa falla: ${path}`);
+          });
+      }
+    }
+
+    function continueToNextLevel() {
+      if (currentCapiAudio) {
+        currentCapiAudio.pause();
+        currentCapiAudio.currentTime = 0;
+        currentCapiAudio = null;
+      }
+      
+      document.getElementById('capiSenseiScreen').style.display = 'none';
+      loadLevel();
+      gameActive = true;
+      requestAnimationFrame(gameLoop);
+    }
+
+    // ====== SISTEMA PWA Y OFFLINE ======
+    let deferredPrompt;
+    let isPWAInstalled = false;
+
+    // Detectar si la PWA está instalada
+    function detectPWA() {
+      if (window.matchMedia('(display-mode: standalone)').matches) {
+        isPWAInstalled = true;
+        console.log('📱 Ejecutando como PWA instalada');
+        document.getElementById('pwaStatus').textContent = '📱 Modo App - Offline disponible';
+      } else {
+        document.getElementById('pwaStatus').textContent = '🌐 Modo Navegador';
+      }
+    }
+
+    // Mostrar prompt de instalación
+    function showInstallPrompt() {
+      if (deferredPrompt) {
+        deferredPrompt.prompt();
+        deferredPrompt.userChoice.then((choiceResult) => {
+          if (choiceResult.outcome === 'accepted') {
+            console.log('✅ Usuario aceptó instalar la PWA');
+            isPWAInstalled = true;
+            document.getElementById('installButton').style.display = 'none';
+          }
+          deferredPrompt = null;
+        });
+      }
+    }
+
+    // Banner de actualización
+    function showUpdateBanner() {
+      const banner = document.getElementById('updateBanner');
+      banner.style.display = 'block';
+      setTimeout(() => {
+        banner.style.display = 'none';
+      }, 10000);
+    }
+
+    // ====== SERVICE WORKER REGISTRATION ======
+    function registerServiceWorker() {
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('/service-worker.js')
+          .then(registration => {
+            console.log('✅ Service Worker registrado:', registration);
+            
+            // Verificar actualizaciones
+            registration.addEventListener('updatefound', () => {
+              const newWorker = registration.installing;
+              console.log('🔄 Nueva versión del Service Worker encontrada');
+              
+              newWorker.addEventListener('statechange', () => {
+                if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                  console.log('🎯 Nueva versión lista');
+                  showUpdateBanner();
+                }
+              });
+            });
+          })
+          .catch(error => {
+            console.log('❌ Error registrando Service Worker:', error);
+          });
+        
+        navigator.serviceWorker.addEventListener('controllerchange', () => {
+          console.log('🎯 Controlador cambiado - Recargando...');
+          showUpdateBanner();
+        });
+      }
+    }
+
+    // ====== DETECCIÓN OFFLINE ======
+    function showOfflineBanner() {
+      if (document.querySelector('.offline-banner')) return;
+      
+      const banner = document.createElement('div');
+      banner.className = 'offline-banner';
+      banner.innerHTML = '🔌 Modo Offline - Juego Completo';
+      document.body.appendChild(banner);
+      
+      setTimeout(() => {
+        if (banner.parentNode) banner.parentNode.removeChild(banner);
+      }, 4000);
+    }
+
+    function updateOnlineStatus() {
+      if (!navigator.onLine) showOfflineBanner();
+    }
+
+    // ====== EVENT LISTENERS PWA ======
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      deferredPrompt = e;
+      document.getElementById('installButton').style.display = 'inline-block';
+      console.log('📱 PWA lista para instalar');
+    });
+
+    window.addEventListener('appinstalled', () => {
+      isPWAInstalled = true;
+      document.getElementById('installButton').style.display = 'none';
+      console.log('✅ PWA instalada exitosamente');
+    });
+
+    // ====== Utilidades del Juego ======
+    function isImageLoaded(img) {
+      return img.complete && img.naturalHeight !== 0 && !img._error;
+    }
+
+    function playSound(id, vol=.5){
+      const a = sounds[id]; 
+      if(!a) return;
+      try {
+        a.currentTime = 0; 
+        a.volume = vol; 
+        a.play().catch(()=>{});
+      } catch(e) {
+        console.warn("Error reproduciendo sonido:", id);
+      }
+    }
+    
+    function formatTime(s){ 
+      const m=Math.floor(s/60),sec=s%60; 
+      return `${m}:${sec<10?'0':''}${sec}`; 
+    }
+    
+    function updateTimer(){ 
+      document.getElementById('timer').textContent = formatTime(timeLeft); 
+    }
+    
+    function clamp(v,min,max){ 
+      return Math.max(min,Math.min(max,v)); 
+    }
+
+    function checkCollision(x, y, entities) {
+      return entities.some(entity => {
+        const ex = Array.isArray(entity) ? entity[0] : entity.x;
+        const ey = Array.isArray(entity) ? entity[1] : entity.y;
+        return ex === x && ey === y;
+      });
+    }
+
+    function getSafePosition(avoidEntities = []) {
+      const cols = Math.floor(canvas.width/GRID);
+      const rows = Math.floor(canvas.height/GRID);
+      let x, y, safe = false;
+      let attempts = 0;
+      
+      do {
+        x = Math.floor(Math.random() * cols) * GRID;
+        y = Math.floor(Math.random() * rows) * GRID;
+        safe = !avoidEntities.some(entity => 
+          checkCollision(x, y, entity)
+        );
+        attempts++;
+      } while (!safe && attempts < 100);
+      
+      return safe ? {x, y} : null;
+    }
+
+    function resizeCanvas(){
+      const side = Math.min(window.innerWidth*0.92, window.innerHeight*0.62, 500);
+      const cells = Math.max(12, Math.floor(side/GRID));
+      canvas.width = canvas.height = cells*GRID;
+      ctx.imageSmoothingEnabled = false;
+    }
+
+    function spawnCanicas(){
+      canicas = [];
+      for(let i=0; i<TOTAL_MARBLES; i++){
+        const pos = getSafePosition([capibara, obstacles, canicas, bullies]);
+        if(pos) canicas.push(pos);
+      }
+    }
+
+    function spawnBullies(count){
+      bullies = [];
+      for(let i=0; i<count; i++){
+        const pos = getSafePosition([capibara, obstacles, canicas, bullies]);
+        if(pos){
+          bullies.push({
+            ...pos, 
+            dx: Math.random()<0.5?1:-1, 
+            dy: Math.random()<0.5?1:-1,
+            type: i%6
+          });
+        }
+      }
+    }
+
+    function loadLevel(){
+      const L = LEVELS[currentLevel];
+      obstacles = L.obstacles.map(([x,y])=>[x*GRID,y*GRID]);
+      gameSpeed = L.speed;
+      spawnCanicas();
+      spawnBullies(L.bullies);
+      document.getElementById('levelNum').textContent = `${currentLevel+1} (${speedLabel(gameSpeed)})`;
+      bullymeter = 0;
+      updateHUD();
+      playSound('triumph', .45);
+    }
+
+    function speedLabel(ms){
+      if(ms>=120) return 'Baja';
+      if(ms>=80) return 'Media';
+      return 'Alta';
+    }
+
+    function updateHUD(){
+      document.getElementById('marbles').textContent = `${bullymeter}/${TOTAL_MARBLES}`;
+      document.getElementById('score').textContent = score;
+      document.getElementById('lives').textContent = '❤️'.repeat(lives);
+    }
+
+    function triggerShake(intensity = 5){
+      shakeIntensity = intensity;
+      document.getElementById('gameContainer').classList.add('shake');
+      setTimeout(() => {
+        document.getElementById('gameContainer').classList.remove('shake');
+      }, 500);
+    }
+
+    function triggerPulse(elementId){
+      const element = document.getElementById(elementId);
+      if(element){
+        element.classList.add('pulse');
+        setTimeout(() => element.classList.remove('pulse'), 500);
+      }
+    }
+
+    function draw(){
+      const shakeX = shakeIntensity > 0 ? (Math.random() - 0.5) * shakeIntensity : 0;
+      const shakeY = shakeIntensity > 0 ? (Math.random() - 0.5) * shakeIntensity : 0;
+      
+      ctx.save();
+      ctx.translate(shakeX, shakeY);
+      
+      ctx.clearRect(0,0,canvas.width,canvas.height);
+
+      // Capibara
+      capibara.forEach(seg=>{
+        if (isImageLoaded(capibaraImg)) {
+          ctx.drawImage(capibaraImg, seg.x, seg.y, GRID, GRID);
+        } else {
+          ctx.fillStyle = '#8B4513';
+          ctx.fillRect(seg.x, seg.y, GRID, GRID);
+          ctx.fillStyle = '#000';
+          ctx.fillText('🐹', seg.x + GRID/4, seg.y + GRID/1.5);
+        }
+      });
+
+      // Canicas (parpadeo de color)
+      const hue = (Date.now()*0.06)%360;
+      canicas.forEach(c=>{
+        ctx.fillStyle = `hsl(${hue},100%,50%)`;
+        ctx.beginPath();
+        ctx.arc(c.x+GRID/2, c.y+GRID/2, GRID/3, 0, Math.PI*2);
+        ctx.fill();
+      });
+
+      // Obstáculos
+      ctx.fillStyle='#8B0000';
+      obstacles.forEach(([x,y])=> ctx.fillRect(x,y,GRID,GRID));
+
+      // Bullies
+      bullies.forEach(b=>{
+        const img = bullyImgs[b.type] || bullyImgs[0];
+        if (isImageLoaded(img)) {
+          ctx.drawImage(img, b.x, b.y, GRID, GRID);
+        } else {
+          ctx.fillStyle = '#FF0000';
+          ctx.beginPath();
+          ctx.arc(b.x+GRID/2, b.y+GRID/2, GRID/2, 0, Math.PI*2);
+          ctx.fill();
+          ctx.fillStyle = '#FFF';
+          ctx.fillText('😡', b.x + GRID/4, b.y + GRID/1.5);
+        }
+      });
+      
+      ctx.restore();
+      
+      if(shakeIntensity > 0) shakeIntensity *= 0.8;
+    }
+
+    function update(){
+      const head = { x:capibara[0].x + direction.x*GRID, y:capibara[0].y + direction.y*GRID };
+
+      // Bordes
+      if(head.x<0 || head.x>=canvas.width || head.y<0 || head.y>=canvas.height){
+        playSound('boing', .6);
+        triggerShake(8);
+        bullymeter = Math.max(0, bullymeter-1);
+        updateHUD();
+        return;
+      }
+
+      // Obstáculos
+      if(checkCollision(head.x, head.y, obstacles)){
+        playSound('boing', .6);
+        triggerShake(8);
+        return;
+      }
+
+      // Bullies
+      if(checkCollision(head.x, head.y, bullies)){
+        playSound('boing', .6);
+        triggerShake(12);
+        lives--;
+        updateHUD();
+        triggerPulse('lives');
+        
+        if (lives <= 0) {
+          showGameOver(false);
+          return;
+        }
+        
+        const safePos = getSafePosition([obstacles, bullies]);
+        if(safePos){
+          capibara[0] = safePos;
+        }
+        return;
+      }
+
+      // Canicas
+      let captured = false;
+      canicas = canicas.filter(c=>{
+        if(c.x===head.x && c.y===head.y){
+          captured = true;
+          bullymeter++;
+          score += 10;
+          playSound('pop', .6);
+          triggerPulse('score');
+          if(bullymeter >= 4){ 
+            timeLeft = Math.min(180, timeLeft+5); 
+            updateTimer(); 
+          }
+          return false;
+        }
+        return true;
+      });
+
+      if(captured) {
+        updateHUD();
+        triggerPulse('marbles');
+      }
+
+      // Avance de nivel
+      if(bullymeter >= WIN_MIN || canicas.length===0){
+        gameActive = false;
+        score += 200;
+        
+        // Guardar progreso al completar nivel
+        saveGameState();
+        
+        if(currentLevel >= LEVELS.length - 1){
+          setTimeout(() => showGameOver(true), 500);
+          return;
+        }
+        
+        currentLevel++;
+        setTimeout(() => showCapiSensei(), 800);
+        return;
+      }
+
+      capibara.unshift(head);
+      if (!captured) capibara.pop();
+      playSound('step', .35);
+      updateBullyBanner();
+    }
+
+    function updateBullyBanner(){
+      const banner = document.getElementById('bullyBanner');
+      const hx = capibara[0].x, hy = capibara[0].y;
+      const near = bullies.find(b => (Math.abs(b.x-hx)+Math.abs(b.y-hy))/GRID <= NEAR_DIST);
+      if(near){
+        const info = BULLY_INFO[near.type] || {name:'Bully'};
+        const bullyType = BULLY_TYPES[near.type];
+        banner.innerHTML = `${info.name.toUpperCase()}<br><small>${bullyType.name}</small>`;
+        banner.style.display = 'block';
+        banner.style.background = '#C62828';
+        banner.style.borderColor = '#ffeb3b';
+      }else{
+        banner.style.display = 'none';
+      }
+    }
+
+    function moveBullies(){
+      bullies.forEach(b=>{
+        b.x += b.dx*GRID;
+        b.y += b.dy*GRID;
+        if(b.x<0 || b.x>=canvas.width) b.dx *= -1;
+        if(b.y<0 || b.y>=canvas.height) b.dy *= -1;
+        b.x = clamp(b.x, 0, canvas.width-GRID);
+        b.y = clamp(b.y, 0, canvas.height-GRID);
+      });
+    }
+
+    function gameLoop(timestamp){
+      if(!gameActive || timeLeft<=0) return;
+      
+      const delta = timestamp - lastTime;
+      const delay = Math.max(40, Math.round(gameSpeed / speedFactor));
+      
+      if(delta >= delay){
+        lastTime = timestamp;
+        update(); 
+        moveBullies(); 
+        draw();
+      }
+      
+      requestAnimationFrame(gameLoop);
+    }
+
+    function startTimer(){
+      clearInterval(timerInterval);
+      timerInterval = setInterval(()=>{
+        if(gameActive && timeLeft>0){ 
+          timeLeft--; 
+          updateTimer(); 
+        }
+        if(timeLeft<=0){
+          gameActive=false; 
+          showGameOver(false);
+        }
+      }, 1000);
+    }
+
+    function setupControls(){
+      const map = { up:{x:0,y:-1}, down:{x:0,y:1}, left:{x:-1,y:0}, right:{x:1,y:0} };
+      const handler = (dir)=> (e)=>{
+        e.preventDefault();
+        const nd = map[dir];
+        if(nd.x !== -direction.x || nd.y !== -direction.y) direction = nd;
+      };
+      ['up','down','left','right'].forEach(id=>{
+        const el = document.getElementById(id);
+        el.addEventListener('click', handler(id), {passive:false});
+        el.addEventListener('touchstart', handler(id), {passive:false});
+      });
+
+      document.addEventListener('keydown', e=>{
+        const km = {ArrowUp:'up', ArrowDown:'down', ArrowLeft:'left', ArrowRight:'right'};
+        if(km[e.key]) handler(km[e.key])(e);
+      });
+
+      // Controles de música
+      const volStep = 0.1;
+      function syncMusicVol(){
+        bgMusic.volume = clamp(bgMusic.volume, 0, 1);
+      }
+      document.getElementById('volDown').onclick = (e)=>{ e.preventDefault(); bgMusic.volume = clamp(bgMusic.volume - volStep, 0, 1); syncMusicVol(); };
+      document.getElementById('volMute').onclick = (e)=>{ e.preventDefault(); bgMusic.volume = 0; syncMusicVol(); };
+      document.getElementById('volUp').onclick = (e)=>{ e.preventDefault(); bgMusic.volume = clamp(bgMusic.volume + volStep, 0, 1); syncMusicVol(); };
+
+      // Controles de velocidad
+      const spdLabel = document.getElementById('spdLabel');
+      function showSpd(){ spdLabel.textContent = `${speedFactor.toFixed(1)}×`; }
+      document.getElementById('spdDown').onclick = (e)=>{ e.preventDefault(); speedFactor = clamp((speedFactor-0.1), 0.6, 1.6); showSpd(); };
+      document.getElementById('spdUp').onclick = (e)=>{ e.preventDefault(); speedFactor = clamp((speedFactor+0.1), 0.6, 1.6); showSpd(); };
+      showSpd();
+    }
+
+    function startGame(){
+      document.getElementById('startScreen').style.display = 'none';
+      gameActive = true;
+      currentLevel = 0; 
+      timeLeft = 180; 
+      bullymeter = 0; 
+      score = 0;
+      lives = 3;
+      speedFactor = 1.0;
+      lastTime = 0;
+
+      resizeCanvas();
+      const cx = Math.floor((canvas.width/2)/GRID)*GRID;
+      const cy = Math.floor((canvas.height/2)/GRID)*GRID;
+      capibara = [{x:cx, y:cy}];
+      direction = {x:1, y:0};
+
+      loadLevel();
+      updateTimer();
+      updateHUD();
+
+      bgMusic.volume = 0.3;
+      bgMusic.play().catch((e)=>{
+        console.warn("Error reproduciendo música:", e);
+      });
+      startTimer(); 
+      requestAnimationFrame(gameLoop);
+    }
+
+    function showGameOver(win){
+      clearInterval(timerInterval);
+      clearInterval(autoSaveInterval);
+      gameActive = false;
+      bgMusic.pause();
+      const title = document.getElementById('gameOverTitle');
+      const stats = document.getElementById('finalStats');
+      
+      if(win) {
+        title.textContent = '🎉 ¡VICTORIA TOTAL!';
+        title.style.color = '#4CAF50';
+        saveHighScore();
+        // Limpiar progreso guardado al completar el juego
+        localStorage.removeItem('capibaraGameState');
+      } else {
+        title.textContent = '💥 Game Over';
+        title.style.color = '#f44336';
+        saveHighScore();
+      }
+      
+      stats.textContent = `Nivel ${Math.min(currentLevel+1, LEVELS.length)} | Puntos: ${score} | Canicas: ${bullymeter}/${TOTAL_MARBLES} | Vidas restantes: ${lives}`;
+      
+      showHighScores();
+      document.getElementById('gameOverScreen').style.display = 'flex';
+      
+      // Mostrar botón de instalación si está disponible
+      if (deferredPrompt && !isPWAInstalled) {
+        document.getElementById('installButton').style.display = 'inline-block';
+      }
+    }
+
+    function restartGame(){
+      document.getElementById('gameOverScreen').style.display = 'none';
+      startGame();
+    }
+
+    // ====== INICIALIZACIÓN COMPLETA ======
+    window.onload = () => { 
+      resizeCanvas(); 
+      setupControls(); 
+      
+      // Inicializar sistemas PWA y offline
+      detectPWA();
+      registerServiceWorker();
+      
+      // Verificar si hay juego guardado y mostrar botón "Continuar"
+      const hasSavedGame = localStorage.getItem('capibaraGameState');
+      document.getElementById('continueButton').style.display = hasSavedGame ? 'inline-block' : 'none';
+      
+      // Iniciar guardado automático
+      startAutoSave();
+      
+      // Precargar recursos
+      capibaraImg.src = 'capibara_sprite.png';
+      for(let i=0; i<6; i++) {
+        bullyImgs[i].src = `bully${i}.png`;
+      }
+      
+      // Verificar estado offline/inicial
+      updateOnlineStatus();
+
+      // Event listeners para detección online/offline
+      window.addEventListener('online', updateOnlineStatus);
+      window.addEventListener('offline', updateOnlineStatus);
+
+      console.log("🎮 Capibara Snake inicializado - Listo para jugar");
+      console.log("📱 PWA:", isPWAInstalled ? 'Instalada' : 'No instalada');
+      console.log("🌐 Conexión:", navigator.onLine ? 'En línea' : 'Offline');
+      console.log("💾 Juego guardado:", hasSavedGame ? 'Disponible' : 'No disponible');
+    };
+
+    // Debouncing para resize
+    window.addEventListener('resize', ()=>{
+      clearTimeout(resizeTimeout);
+      resizeTimeout = setTimeout(resizeCanvas, 250);
+    });
+
+    // Guardar estado al cerrar/recargar la página
+    window.addEventListener('beforeunload', () => {
+      if (gameActive) {
+        saveGameState();
+      }
+    });
+  </script>
+</body>
+</html>
